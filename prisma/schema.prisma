@@ -9,30 +9,13 @@ datasource db {
   schemas  = ["public"]
 }
 
-model audit_logs {
-  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id    String      @db.Uuid
-  action     AuditAction
-  resource   String?     @db.VarChar(255)
-  details    Json?
-  ip_address String?     @db.VarChar(45)
-  user_agent String?
-  created_at DateTime?   @default(now()) @db.Timestamp(6)
-  users      users       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([action], map: "idx_audit_logs_action")
-  @@index([created_at], map: "idx_audit_logs_created_at")
-  @@index([user_id], map: "idx_audit_logs_user_id")
-  @@schema("public")
-}
-
 model dental_groups {
-  dental_group_id      BigInt    @id
+  dental_group_id      BigInt             @id
   name                 String
   dental_group_sfdc_id String?
-  is_active            Boolean?  @default(true)
-  created_at           DateTime? @default(now()) @db.Timestamp(6)
-  updated_at           DateTime? @default(now()) @db.Timestamp(6)
+  is_active            Boolean?           @default(true)
+  created_at           DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at           DateTime?          @default(now()) @db.Timestamp(6)
   address              String?
   address_2            String?
   city                 String?
@@ -42,7 +25,9 @@ model dental_groups {
   centralized_billing  Boolean?
   sales_channel        String?
   sales_rep            String?
+  dental_practices     dental_practices[]
 
+  @@index([dental_group_sfdc_id], map: "idx_dental_groups_sfdc_id")
   @@schema("public")
 }
 
@@ -65,13 +50,18 @@ model dental_practices {
   is_active                Boolean?               @default(true)
   created_at               DateTime?              @default(now()) @db.Timestamp(6)
   updated_at               DateTime?              @default(now()) @db.Timestamp(6)
+  dental_groups            dental_groups?         @relation(fields: [dental_group_id], references: [dental_group_id], onDelete: NoAction, onUpdate: NoAction)
+  fee_schedules            fee_schedules?         @relation(fields: [fee_schedule], references: [schedule_name], onDelete: NoAction, onUpdate: NoAction, map: "fk_dental_practices_fee_schedule")
   lab_practice_mapping     lab_practice_mapping[]
+  orders_current           orders_current[]       @ignore
 
+  @@index([dental_group_id], map: "idx_dental_practices_group_id")
   @@schema("public")
 }
 
 model fee_schedules {
   schedule_name         String                  @id
+  dental_practices      dental_practices[]
   product_lab_rev_share product_lab_rev_share[]
 
   @@schema("public")
@@ -86,9 +76,11 @@ model incisive_product_catalog {
   created_at            DateTime?               @default(now()) @db.Timestamp(6)
   updated_at            DateTime?               @default(now()) @db.Timestamp(6)
   lab_product_mapping   lab_product_mapping[]
+  orders_current        orders_current[]        @ignore
   product_lab_markup    product_lab_markup[]
   product_lab_rev_share product_lab_rev_share[]
 
+  @@index([category], map: "idx_product_catalog_category")
   @@schema("public")
 }
 
@@ -100,15 +92,18 @@ model lab_practice_mapping {
   is_active               Boolean?         @default(true)
   created_at              DateTime?        @default(now()) @db.Timestamp(6)
   updated_at              DateTime?        @default(now()) @db.Timestamp(6)
-  labs                    labs             @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
+  labs                    public_labs      @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
   dental_practices        dental_practices @relation(fields: [practice_id], references: [practice_id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@unique([lab_id, lab_practice_id])
+  @@index([lab_id], map: "idx_lab_practice_mapping_lab_id")
+  @@index([practice_id], map: "idx_lab_practice_mapping_practice_id")
   @@schema("public")
 }
 
 model lab_product_mapping {
   lab_product_mapping_id   BigInt                    @id @default(autoincrement())
-  lab_id                   BigInt?
+  lab_id                   BigInt
   lab_product_id           String?
   lab_product_name         String?
   incisive_product_id      Int?
@@ -116,24 +111,117 @@ model lab_product_mapping {
   created_at               DateTime?                 @default(now()) @db.Timestamp(6)
   updated_at               DateTime?                 @default(now()) @db.Timestamp(6)
   incisive_product_catalog incisive_product_catalog? @relation(fields: [incisive_product_id], references: [incisive_id], onDelete: NoAction, onUpdate: NoAction)
-  labs                     labs?                     @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
+  labs                     public_labs               @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@unique([lab_id, lab_product_id], map: "lab_product_mapping_lab_id_product_id_key")
+  @@index([incisive_product_id], map: "idx_lab_product_mapping_incisive_id")
+  @@index([lab_id], map: "idx_lab_product_mapping_lab_id")
   @@schema("public")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model labs {
-  lab_id                BigInt                  @id @default(autoincrement())
-  lab_name              String
-  lab_sfdc_id           String?
-  partner_model         String?
-  is_active             Boolean?                @default(true)
-  created_at            DateTime?               @default(now()) @db.Timestamp(6)
-  updated_at            DateTime?               @default(now()) @db.Timestamp(6)
-  lab_practice_mapping  lab_practice_mapping[]
-  lab_product_mapping   lab_product_mapping[]
-  product_lab_markup    product_lab_markup[]
-  product_lab_rev_share product_lab_rev_share[]
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model orders_current {
+  caseid                   BigInt
+  productid                String
+  submissiondate           String?
+  shippingdate             String?
+  casedate                 String?
+  productdescription       String?
+  quantity                 BigInt?
+  productprice             String?
+  patientname              String?
+  customerid               String?
+  customername             String?
+  address                  String?
+  phonenumber              String?
+  casestatus               String?
+  holdreason               String?
+  estimatecompletedate     String?
+  requestedreturndate      String?
+  trackingnumber           String?
+  estimatedshipdate        String?
+  holddate                 String?
+  deliverystatus           String?
+  notes                    String?
+  onhold                   String?
+  shade                    String?
+  mold                     String?
+  doctorpreferences        String?
+  productpreferences       String?
+  comments                 String?
+  casetotal                String?
+  lab_id                   BigInt?
+  incisive_product_id      Int?
+  incisive_practice_id     BigInt?
+  row_hash                 String?
+  last_updated_at          DateTime?                 @default(now()) @db.Timestamp(6)
+  dental_practices         dental_practices?         @relation(fields: [incisive_practice_id], references: [practice_id], onDelete: NoAction, onUpdate: NoAction)
+  incisive_product_catalog incisive_product_catalog? @relation(fields: [incisive_product_id], references: [incisive_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@ignore
+  @@schema("public")
+}
+
+/// This table is managed by ETL and should not be accessed via Prisma Client.
+model orders_history {
+  history_id      BigInt    @id @default(autoincrement())
+  caseid          BigInt?
+  productid       String?
+  lab_id          BigInt?
+  change_type     String?
+  changed_columns String[]
+  old_row         Json?
+  new_row         Json?
+  source_file_key String?
+  changed_at      DateTime? @default(now()) @db.Timestamp(6)
+
+  @@ignore
+  @@index([caseid, productid], map: "idx_orders_history_caseid_productid")
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model orders_stage {
+  submissiondate       String?
+  shippingdate         String?
+  casedate             String?
+  caseid               BigInt?
+  productid            String?
+  productdescription   String?
+  quantity             BigInt?
+  productprice         String?
+  patientname          String?
+  customerid           String?
+  customername         String?
+  address              String?
+  phonenumber          String?
+  casestatus           String?
+  holdreason           String?
+  estimatecompletedate String?
+  requestedreturndate  String?
+  trackingnumber       String?
+  estimatedshipdate    String?
+  holddate             String?
+  deliverystatus       String?
+  notes                String?
+  onhold               String?
+  shade                String?
+  mold                 String?
+  doctorpreferences    String?
+  productpreferences   String?
+  comments             String?
+  casetotal            String?
+  lab_id               BigInt?   @default(2)
+  source_file_key      String?
+  row_hash             String?
+  loaded_at            DateTime? @default(now()) @db.Timestamp(6)
+
+  @@ignore
+  @@schema("public")
+}
+
+model patients {
+  patient_name String @id
 
   @@schema("public")
 }
@@ -147,7 +235,7 @@ model product_lab_markup {
   nf_price                 Float?
   commitment_eligible      Boolean?
   incisive_product_catalog incisive_product_catalog? @relation(fields: [incisive_product_id], references: [incisive_id], onDelete: NoAction, onUpdate: NoAction)
-  labs                     labs                      @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
+  labs                     public_labs               @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([lab_id, lab_product_id])
   @@schema("public")
@@ -162,46 +250,27 @@ model product_lab_rev_share {
   commitment_eligible      Boolean?
   fee_schedules            fee_schedules             @relation(fields: [fee_schedule_name], references: [schedule_name], onDelete: NoAction, onUpdate: NoAction)
   incisive_product_catalog incisive_product_catalog? @relation(fields: [incisive_product_id], references: [incisive_id], onDelete: NoAction, onUpdate: NoAction)
-  labs                     labs                      @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
+  labs                     public_labs               @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([lab_id, lab_product_id, fee_schedule_name])
-  @@unique([lab_id, lab_product_id, fee_schedule_name], map: "unique_lab_product_fee_schedule")
   @@schema("public")
 }
 
-model users {
-  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email         String       @unique @db.VarChar(255)
-  password      String       @db.VarChar(255)
-  first_name    String       @db.VarChar(255)
-  last_name     String       @db.VarChar(255)
-  role          Role?        @default(USER)
-  is_active     Boolean?     @default(true)
-  refresh_token String?
-  created_at    DateTime?    @default(now()) @db.Timestamp(6)
-  updated_at    DateTime?    @default(now()) @db.Timestamp(6)
-  audit_logs    audit_logs[]
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model public_labs {
+  lab_id                BigInt                  @id @default(autoincrement())
+  lab_name              String
+  lab_sfdc_id           String?
+  partner_model         String?
+  is_active             Boolean?                @default(true)
+  created_at            DateTime?               @default(now()) @db.Timestamp(6)
+  updated_at            DateTime?               @default(now()) @db.Timestamp(6)
+  lab_practice_mapping  lab_practice_mapping[]
+  lab_product_mapping   lab_product_mapping[]
+  product_lab_markup    product_lab_markup[]
+  product_lab_rev_share product_lab_rev_share[]
 
-  @@schema("public")
-}
-
-enum AuditAction {
-  LOGIN
-  LOGOUT
-  CREATE_USER
-  UPDATE_USER
-  DELETE_USER
-  CREATE_RECORD
-  UPDATE_RECORD
-  DELETE_RECORD
-
-  @@schema("public")
-}
-
-enum Role {
-  ADMIN
-  USER
-  VIEWER
-
+  @@index([lab_sfdc_id], map: "idx_labs_sfdc_id")
+  @@map("labs")
   @@schema("public")
 }

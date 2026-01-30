@@ -1,5 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { DentalGroupsService } from './dental-groups.service';
 
 @ApiTags('Dental Groups')
@@ -10,6 +10,7 @@ export class DentalGroupsController {
 
   @Get('ids')
   @ApiOperation({ summary: 'Get all dental group IDs and names' })
+  @ApiQuery({ name: 'search', required: false, description: 'Search by name or ID' })
   @ApiResponse({
     status: 200,
     description: 'List of dental groups with IDs and names',
@@ -29,7 +30,7 @@ export class DentalGroupsController {
       },
     },
   })
-  async getDentalGroupIds() {
-    return this.dentalGroupsService.getDentalGroupIds();
+  async getDentalGroupIds(@Query('search') search?: string) {
+    return this.dentalGroupsService.getDentalGroupIds(search);
   }
 }

@@ -93,13 +93,45 @@ export class TablesController {
     @Body() data: {
       lab_id: number;
       lab_product_id: string;
-      schedule_name: string;
+      schedule_name: string | Record<string, number | null>;
       incisive_product_id?: number | null;
       revenue_share?: number;
     },
     @CurrentUser('id') userId: string,
   ) {
     return this.tablesService.updateProductLabRevShareRow(data, userId);
+  }
+
+  @Delete('product_lab_rev_share/rows')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete product lab rev share records' })
+  @ApiResponse({ status: 200, description: 'Records deleted successfully' })
+  @ApiResponse({ status: 400, description: 'Missing required fields' })
+  @ApiResponse({ status: 404, description: 'Records not found' })
+  async deleteProductLabRevShare(
+    @Body() data: {
+      lab_id: number;
+      lab_product_id: string;
+    },
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.tablesService.deleteProductLabRevShareRows(data, userId);
+  }
+
+  @Delete('product_lab_markup/rows')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete product lab markup record' })
+  @ApiResponse({ status: 200, description: 'Record deleted successfully' })
+  @ApiResponse({ status: 400, description: 'Missing required fields' })
+  @ApiResponse({ status: 404, description: 'Record not found' })
+  async deleteProductLabMarkup(
+    @Body() data: {
+      lab_id: number;
+      lab_product_id: string;
+    },
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.tablesService.deleteProductLabMarkupRow(data, userId);
   }
 
   @Patch('product_lab_markup/rows')

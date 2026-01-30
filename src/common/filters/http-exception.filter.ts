@@ -30,9 +30,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
         errors = responseObj.errors || null;
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
-      // Log unexpected errors
-      console.error('Unexpected error:', exception);
+      // Log unexpected errors with full stack
+      console.error('Unexpected error:', exception.message);
+      console.error('Stack:', exception.stack);
+
+      // Show actual error message (helpful for debugging)
+      // In production, you might want to hide this
+      message = exception.message || 'Internal server error';
     }
 
     response.status(status).json({

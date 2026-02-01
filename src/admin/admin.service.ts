@@ -6,31 +6,23 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../audit/audit.service';
 import {
   AdminCreateUserDto,
   AdminUpdateUserDto,
   UserQueryDto,
-  AuditLogQueryDto,
   DashboardStatsDto,
 } from './dto';
 
 @Injectable()
 export class AdminService {
-  constructor(
-    private prisma: PrismaService,
-    private auditService: AuditService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   /**
    * Get dashboard statistics
    */
   async getDashboardStats(): Promise<DashboardStatsDto> {
-    const now = new Date();
-    const todayStart = new Date(now.setHours(0, 0, 0, 0));
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     // User stats
     const [
@@ -51,27 +43,6 @@ export class AdminService {
       this.prisma.users.count({ where: { created_at: { gte: monthAgo } } }),
     ]);
 
-    // Audit stats
-    const [totalLogs, logsLast24Hours, loginsToday, actionCounts] = await Promise.all([
-      this.prisma.audit_logs.count(),
-      this.prisma.audit_logs.count({ where: { created_at: { gte: last24Hours } } }),
-      this.prisma.audit_logs.count({
-        where: {
-          action: 'LOGIN',
-          created_at: { gte: todayStart },
-        },
-      }),
-      this.prisma.audit_logs.groupBy({
-        by: ['action'],
-        _count: { action: true },
-      }),
-    ]);
-
-    const actionBreakdown: Record<string, number> = {};
-    actionCounts.forEach((item: { action: string; _count: { action: number } }) => {
-      actionBreakdown[item.action] = item._count.action;
-    });
-
     return {
       users: {
         total: totalUsers,
@@ -82,14 +53,8 @@ export class AdminService {
         viewers: viewerCount,
       },
       recentActivity: {
-        loginsToday,
         newUsersThisWeek,
         newUsersThisMonth,
-      },
-      auditSummary: {
-        totalLogs,
-        logsLast24Hours,
-        actionBreakdown,
       },
       generatedAt: new Date(),
     };
@@ -166,9 +131,6 @@ export class AdminService {
         is_active: true,
         created_at: true,
         updated_at: true,
-        _count: {
-          select: { audit_logs: true },
-        },
       },
     });
 
@@ -212,9 +174,6 @@ export class AdminService {
         created_at: true,
       },
     });
-
-    // Log the action
-    await this.auditService.logCreateUser(adminId, user.id, user.email);
 
     return user;
   }
@@ -269,9 +228,6 @@ export class AdminService {
       },
     });
 
-    // Log the action
-    await this.auditService.logUpdateUser(adminId, id);
-
     return updatedUser;
   }
 
@@ -294,9 +250,6 @@ export class AdminService {
     await this.prisma.users.delete({
       where: { id },
     });
-
-    // Log the action
-    await this.auditService.logDeleteUser(adminId, id, user.email);
 
     return { message: 'User deleted successfully' };
   }
@@ -321,8 +274,6 @@ export class AdminService {
       where: { id },
       data: { is_active: true },
     });
-
-    await this.auditService.logUpdateUser(adminId, id);
 
     return { message: 'User activated successfully' };
   }
@@ -352,66 +303,6 @@ export class AdminService {
       data: { is_active: false },
     });
 
-    await this.auditService.logUpdateUser(adminId, id);
-
     return { message: 'User deactivated successfully' };
-  }
-
-  /**
-   * Get audit logs with filtering
-   */
-  async getAuditLogs(query: AuditLogQueryDto) {
-    const { page = 1, limit = 20, userId, action, startDate, endDate } = query;
-    const skip = (page - 1) * limit;
-
-    const where: any = {};
-
-    if (userId) {
-      where.user_id = userId;
-    }
-
-    if (action) {
-      where.action = action;
-    }
-
-    if (startDate || endDate) {
-      where.created_at = {};
-      if (startDate) {
-        where.created_at.gte = new Date(startDate);
-      }
-      if (endDate) {
-        where.created_at.lte = new Date(endDate);
-      }
-    }
-
-    const [logs, total] = await Promise.all([
-      this.prisma.audit_logs.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { created_at: 'desc' },
-        include: {
-          users: {
-            select: {
-              id: true,
-              email: true,
-              first_name: true,
-              last_name: true,
-            },
-          },
-        },
-      }),
-      this.prisma.audit_logs.count({ where }),
-    ]);
-
-    return {
-      data: logs,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
   }
 }

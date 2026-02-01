@@ -92,7 +92,7 @@ model lab_practice_mapping {
   is_active               Boolean?         @default(true)
   created_at              DateTime?        @default(now()) @db.Timestamp(6)
   updated_at              DateTime?        @default(now()) @db.Timestamp(6)
-  labs                    public_labs      @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
+  labs                    labs      @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
   dental_practices        dental_practices @relation(fields: [practice_id], references: [practice_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([lab_id, lab_practice_id])
@@ -111,7 +111,7 @@ model lab_product_mapping {
   created_at               DateTime?                 @default(now()) @db.Timestamp(6)
   updated_at               DateTime?                 @default(now()) @db.Timestamp(6)
   incisive_product_catalog incisive_product_catalog? @relation(fields: [incisive_product_id], references: [incisive_id], onDelete: NoAction, onUpdate: NoAction)
-  labs                     public_labs               @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
+  labs                     labs               @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([lab_id, lab_product_id], map: "lab_product_mapping_lab_id_product_id_key")
   @@index([incisive_product_id], map: "idx_lab_product_mapping_incisive_id")
@@ -226,6 +226,29 @@ model patients {
   @@schema("public")
 }
 
+enum user_role {
+  ADMIN
+  USER
+  VIEWER
+
+  @@schema("public")
+}
+
+model users {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String    @unique
+  password      String
+  first_name    String?
+  last_name     String?
+  role          user_role @default(USER)
+  is_active     Boolean   @default(true)
+  refresh_token String?
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+  updated_at    DateTime  @updatedAt @db.Timestamp(6)
+
+  @@schema("public")
+}
+
 model product_lab_markup {
   lab_id                   BigInt
   lab_product_id           String
@@ -235,7 +258,7 @@ model product_lab_markup {
   nf_price                 Float?
   commitment_eligible      Boolean?
   incisive_product_catalog incisive_product_catalog? @relation(fields: [incisive_product_id], references: [incisive_id], onDelete: NoAction, onUpdate: NoAction)
-  labs                     public_labs               @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
+  labs                     labs               @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([lab_id, lab_product_id])
   @@schema("public")
@@ -250,14 +273,14 @@ model product_lab_rev_share {
   commitment_eligible      Boolean?
   fee_schedules            fee_schedules             @relation(fields: [fee_schedule_name], references: [schedule_name], onDelete: NoAction, onUpdate: NoAction)
   incisive_product_catalog incisive_product_catalog? @relation(fields: [incisive_product_id], references: [incisive_id], onDelete: NoAction, onUpdate: NoAction)
-  labs                     public_labs               @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
+  labs                     labs               @relation(fields: [lab_id], references: [lab_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([lab_id, lab_product_id, fee_schedule_name])
   @@schema("public")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model public_labs {
+model labs {
   lab_id                BigInt                  @id @default(autoincrement())
   lab_name              String
   lab_sfdc_id           String?
@@ -271,6 +294,5 @@ model public_labs {
   product_lab_rev_share product_lab_rev_share[]
 
   @@index([lab_sfdc_id], map: "idx_labs_sfdc_id")
-  @@map("labs")
   @@schema("public")
 }

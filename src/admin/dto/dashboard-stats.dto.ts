@@ -21,25 +21,11 @@ export class UserStatsDto {
 }
 
 export class RecentActivityDto {
-  @ApiProperty({ description: 'Total logins today' })
-  loginsToday: number;
-
   @ApiProperty({ description: 'New users this week' })
   newUsersThisWeek: number;
 
   @ApiProperty({ description: 'New users this month' })
   newUsersThisMonth: number;
-}
-
-export class AuditSummaryDto {
-  @ApiProperty({ description: 'Total audit log entries' })
-  totalLogs: number;
-
-  @ApiProperty({ description: 'Logs in the last 24 hours' })
-  logsLast24Hours: number;
-
-  @ApiProperty({ description: 'Action breakdown' })
-  actionBreakdown: Record<string, number>;
 }
 
 export class DashboardStatsDto {
@@ -48,9 +34,6 @@ export class DashboardStatsDto {
 
   @ApiProperty({ type: RecentActivityDto })
   recentActivity: RecentActivityDto;
-
-  @ApiProperty({ type: AuditSummaryDto })
-  auditSummary: AuditSummaryDto;
 
   @ApiProperty({ description: 'Timestamp of the stats' })
   generatedAt: Date;

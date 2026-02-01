@@ -8,8 +8,6 @@ import {
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../audit/audit.service';
-import { AuditAction } from '../audit/audit.types';
 import {
   TableInfoDto,
   TableConfigDto,
@@ -20,10 +18,7 @@ import { AllowedTable, ADMIN_ONLY_TABLES, getAllowedTableNames } from './tables.
 
 @Injectable()
 export class TablesService {
-  constructor(
-    private prisma: PrismaService,
-    private auditService: AuditService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   /**
    * Tables to exclude from the API entirely (e.g., tables with @@ignore)
@@ -1147,7 +1142,6 @@ export class TablesService {
   private getTableDescription(name: string): string {
     const descriptions: Record<string, string> = {
       users: 'Manage system users and their roles',
-      audit_logs: 'View system activity and audit trail',
     };
     return descriptions[name] || `Manage ${this.formatTableLabel(name)}`;
   }
@@ -1158,7 +1152,6 @@ export class TablesService {
   private getTableIcon(name: string): string {
     const icons: Record<string, string> = {
       users: 'users',
-      audit_logs: 'activity',
     };
     return icons[name] || 'database';
   }
@@ -1228,15 +1221,6 @@ export class TablesService {
         { value: 'VIEWER', label: 'Viewer' },
       ];
     }
-    if (fieldName === 'action' && tableName === 'audit_logs') {
-      return [
-        { value: 'LOGIN', label: 'Login' },
-        { value: 'LOGOUT', label: 'Logout' },
-        { value: 'CREATE_USER', label: 'Create User' },
-        { value: 'UPDATE_USER', label: 'Update User' },
-        { value: 'DELETE_USER', label: 'Delete User' },
-      ];
-    }
     return undefined;
   }
 
@@ -1252,9 +1236,9 @@ export class TablesService {
       const actions = tableName === 'users' ? ['activate', 'deactivate'] : [];
       return {
         read: true,
-        create: tableName !== 'audit_logs',
-        update: tableName !== 'audit_logs',
-        delete: tableName !== 'audit_logs',
+        create: true,
+        update: true,
+        delete: true,
         actions,
       };
     }
@@ -1263,9 +1247,9 @@ export class TablesService {
     if (userRole === 'USER') {
       return {
         read: true,
-        create: tableName !== 'audit_logs',
-        update: tableName !== 'audit_logs',
-        delete: tableName !== 'audit_logs',
+        create: true,
+        update: true,
+        delete: true,
         actions: [],
       };
     }
@@ -1315,11 +1299,6 @@ export class TablesService {
     // VIEWER role can only read
     if (action !== 'read' && userRole === 'VIEWER') {
       throw new ForbiddenException(`You don't have permission to ${action} in this table`);
-    }
-
-    // Prevent modifications to audit_logs
-    if (model.name === 'audit_logs' && action !== 'read') {
-      throw new ForbiddenException('Audit logs are read-only');
     }
 
     return model.name;

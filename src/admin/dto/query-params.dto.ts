@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsInt, Min, Max, IsString, IsEnum, IsDateString } from 'class-validator';
+import { IsOptional, IsInt, Min, Max, IsString, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Role } from '../../auth/constants/roles.enum';
 
@@ -35,26 +35,4 @@ export class UserQueryDto extends PaginationDto {
   @IsOptional()
   @Type(() => Boolean)
   isActive?: boolean;
-}
-
-export class AuditLogQueryDto extends PaginationDto {
-  @ApiPropertyOptional({ description: 'Filter by user ID' })
-  @IsOptional()
-  @IsString()
-  userId?: string;
-
-  @ApiPropertyOptional({ description: 'Filter by action' })
-  @IsOptional()
-  @IsString()
-  action?: string;
-
-  @ApiPropertyOptional({ description: 'Start date (ISO format)' })
-  @IsOptional()
-  @IsDateString()
-  startDate?: string;
-
-  @ApiPropertyOptional({ description: 'End date (ISO format)' })
-  @IsOptional()
-  @IsDateString()
-  endDate?: string;
 }

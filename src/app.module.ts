@@ -11,7 +11,6 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { AuditModule } from './audit/audit.module';
 import { HealthModule } from './health/health.module';
 import { TablesModule } from './tables/tables.module';
 import { LabsModule } from './labs/labs.module';
@@ -50,7 +49,6 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     AdminModule,
     AuthModule,
     UsersModule,
-    AuditModule,
     HealthModule,
     TablesModule,
     LabsModule,

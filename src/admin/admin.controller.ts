@@ -23,7 +23,6 @@ import {
   AdminCreateUserDto,
   AdminUpdateUserDto,
   UserQueryDto,
-  AuditLogQueryDto,
   DashboardStatsDto,
 } from './dto';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -130,14 +129,5 @@ export class AdminController {
     @CurrentUser('id') adminId: string,
   ) {
     return this.adminService.deactivateUser(id, adminId);
-  }
-
-  // ==================== AUDIT LOGS ====================
-
-  @Get('audit-logs')
-  @ApiOperation({ summary: 'Get audit logs with filtering' })
-  @ApiResponse({ status: 200, description: 'List of audit logs with pagination' })
-  async getAuditLogs(@Query() query: AuditLogQueryDto) {
-    return this.adminService.getAuditLogs(query);
   }
 }

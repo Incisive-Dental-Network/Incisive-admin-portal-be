@@ -51,7 +51,9 @@ function splitSqlStatements(sql: string): string[] {
 async function runMigrations() {
   console.log('Starting database migrations...\n');
 
-  const migrationsDir = path.join(__dirname, 'migrations');
+  // In production (dist/prisma/), go up two levels to reach project root, then into prisma/migrations
+  // In development (src/prisma/), go up two levels to reach project root, then into prisma/migrations
+  const migrationsDir = path.join(__dirname, '..', '..', 'prisma', 'migrations');
 
   // Get all .sql files sorted by name
   const migrationFiles = fs.readdirSync(migrationsDir)

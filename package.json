@@ -20,7 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
-    "db:migrate": "ts-node prisma/run-migrations.ts",
+    "db:migrate": "ts-node src/prisma/run-migrations.ts",
     "db:migrate:prod": "node dist/prisma/run-migrations.js"
   },
   "dependencies": {
